@@ -5,11 +5,12 @@
 # To run the program call the following command in terminal
 # python main.py
 
+import os
 import sys
+import random
 import logging
-
+import flickrapi
 import cv2
-
 from vaporwave import vaporize
 
 ESCAPE_KEY = 27
@@ -21,15 +22,28 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger("main")
 logger.setLevel(logging.INFO)
 
+from urllib.request import urlretrieve
+from PIL import Image
 
-def main():
+filename = "pic"
+fullFileName = ("%s.jpg" % filename)
+url_template = 'http://farm%(farm_id)s.staticflickr.com/%(server_id)s/%(photo_id)s_%(secret)s.jpg'
 
+def url_for_photo(p):
+        return url_template % {
+            'server_id': p.get('server'),
+            'farm_id': p.get('farm'),
+            'photo_id': p.get('id'),
+            'secret': p.get('secret'),
+        }
+
+def appyEffect():
     img = vaporize()
 
-    cv2.namedWindow("pic", cv2.WINDOW_NORMAL)
-    cv2.imshow("pic", img)
+    cv2.namedWindow(filename, cv2.WINDOW_NORMAL)
+    cv2.imshow(filename, img)
 
-    while cv2.getWindowProperty("pic", cv2.WND_PROP_VISIBLE):
+    while cv2.getWindowProperty(filename, cv2.WND_PROP_VISIBLE):
         key_code = cv2.waitKey(100)
 
         if key_code == ESCAPE_KEY:
@@ -38,11 +52,28 @@ def main():
             import time
             start = time.time()
             img = vaporize()
-            cv2.imshow("pic", img)
+            cv2.imshow(filename, img)
             end = time.time()
             logger.info("Vaporizing and rendering took: %f seconds" % (end-start,))
+
     cv2.destroyAllWindows()
     sys.exit()
+
+def main():
+    args = sys.argv
+
+    if len(args) == 1:
+        appyEffect()
+
+    else:
+        tag = args[1]
+
+         # Retrieving a random image from Flickr by the tag
+        flickr = flickrapi.FlickrAPI('your Flickr API key here', 'your Flickr secret here', cache=True)
+        url = url_for_photo(random.choice(flickr.photos_search(tags=tag, per_page=1)[0]))
+        urlretrieve(url, filename=fullFileName)
+
+        appyEffect()
 
 
 if __name__ == "__main__":
